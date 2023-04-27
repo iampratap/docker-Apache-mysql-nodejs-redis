@@ -1,0 +1,93 @@
+version: "3.7"
+
+services:
+
+  nginx:
+    container_name: nginx
+    image: nginx
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./site:/var/www/html:ro
+    command: [nginx-debug, '-g', 'daemon off;']
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+    depends_on:
+      - db
+      - redis
+      - api
+      - portainer
+
+
+  api:
+    container_name: api
+    image: bitnami/node
+    command: /bin/bash -c "cd /server && npm i && npm i -g pm2 && pm2-runtime start ecosystem.config.js"
+    # command: "sh -c 'cd /server && npm install && npm install -g supervisor && supervisor index.js'"
+    restart: always
+    volumes:
+      - ./server:/server
+    ports:
+      - "8000:80"
+    environment:
+      - TZ=Asia/Kolkata
+    depends_on:
+      - db
+      - redis
+
+  redis:
+    container_name: redis
+    image: redis
+    command: ["redis-server", "--appendonly", "yes"]
+    expose:
+      - "6379"
+    volumes:
+      - ./redis-data/redis:/data
+      - TZ=Asia/Kolkata
+    restart: always
+  
+  redis-commander:
+    container_name: redis-commander
+    hostname: redis-commander
+    image: rediscommander/redis-commander:latest
+    restart: always
+    environment:
+        - REDIS_HOSTS=redis
+    ports:
+        - 8081:8081
+
+  db:
+    container_name: db
+    image: mariadb
+    restart: always
+    volumes:
+      - ./datavolume:/var/lib/mysql
+      # - ./db/app.sql:/docker-entrypoint-initdb.d/dump.sql
+    environment:
+      - TZ=Asia/Kolkata
+      - MARIADB_ROOT_PASSWORD=pass@123
+      - MARIADB_DATABASE=app
+  
+  phpmyadmin:
+    container_name: phpmyadmin
+    image: phpmyadmin
+    restart: always
+    ports:
+      - 8880:80
+    environment:
+      - PMA_ARBITRARY=1
+      - TZ=Asia/Kolkata
+  
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./portainer-data:/data
+    ports:
+      - 9000:9000
