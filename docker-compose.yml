@@ -66,7 +66,7 @@ services:
       # - ./db/app.sql:/docker-entrypoint-initdb.d/dump.sql
     environment:
       - TZ=Asia/Kolkata
-      - MARIADB_ROOT_PASSWORD=pass@123
+      - MARIADB_ROOT_PASSWORD=Password@123
       - MARIADB_DATABASE=app
   
   phpmyadmin:
